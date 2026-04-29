@@ -8,9 +8,6 @@ import time
 
 from pathlib import Path
 
-
-import cv2
-
 import numpy as np
 
 import tensorflow as tf
@@ -324,7 +321,7 @@ def train_model(model_name, train_ds, val_ds, n_classes, phase1_epochs, phase2_e
 
     total_params = model.count_params()
 
-    results_dir = Path("results_baseline")
+    results_dir = Path("outputs/baseline_results")
 
     checkpoint_path = results_dir / f"{model_name}_best.keras"
 
@@ -369,9 +366,7 @@ def train_model(model_name, train_ds, val_ds, n_classes, phase1_epochs, phase2_e
 
 # ─── LATEX TABLE ───────────────────────────────────────────────────────────
 
-def generate_latex_table(results: list, own_acc=None, own_f1=None,
-
-                          own_params=None, own_inf=None) -> str:
+def generate_latex_table(results: list) -> str:
 
     """Karşılaştırma tablosu için LaTeX kodu üret."""
 
@@ -419,10 +414,6 @@ def generate_latex_table(results: list, own_acc=None, own_f1=None,
 
     all_accs = [r["val_accuracy"] for r in results]
 
-    if own_acc:
-
-        all_accs.append(own_acc)
-
     best_acc = max(all_accs) if all_accs else 0
 
 
@@ -443,27 +434,6 @@ def generate_latex_table(results: list, own_acc=None, own_f1=None,
         rows.append(
 
             f"        {dname} & {params_m:.1f} & {acc_str} & {f1_str} & {r['inf_time_ms']:.1f} \\\\"
-
-        )
-
-
-    if own_acc is not None:
-
-        acc_str = f"{own_acc*100:.2f}"
-
-        if own_acc == best_acc:
-
-            acc_str = f"\\textbf{{{acc_str}}}"
-
-        own_name = ("\\textbf{DenseNet121 + WBCAttention + MedSwish} "
-
-                    "(\\textbf{önerilen})")
-
-        rows.append(
-
-            f"        {own_name} & {own_params/1e6:.2f} & {acc_str} & "
-
-            f"\\textbf{{{own_f1:.4f}}} & {own_inf:.1f} \\\\"
 
         )
 
@@ -491,15 +461,8 @@ def main():
 
     parser.add_argument("--split",       default="Train")
 
-    parser.add_argument("--results-dir", default="results_baseline")
+    parser.add_argument("--results-dir", default="outputs/baseline_results")
 
-    parser.add_argument("--own-acc",     type=float, default=0.9853)
-
-    parser.add_argument("--own-f1",      type=float, default=0.9853)
-
-    parser.add_argument("--own-params",  type=float, default=7830252)
-
-    parser.add_argument("--own-inf",     type=float, default=14.2)
 
     parser.add_argument("--fast",        action="store_true",
 
@@ -666,14 +629,6 @@ def main():
 
         all_results,
 
-        own_acc=args.own_acc,
-
-        own_f1=args.own_f1,
-
-        own_params=int(args.own_params),
-
-        own_inf=args.own_inf,
-
     )
 
     out_tex = results_dir / "backbone_comparison_table.tex"
@@ -702,12 +657,6 @@ def main():
         print(f"{r['model']:<35} {r['val_accuracy']*100:>7.2f}% "
 
               f"{r['macro_f1']:>8.4f} {r['total_params']/1e6:>10.2f} {r['inf_time_ms']:>8.1f}")
-
-    print(f"{'DenseNet121+Att+MedSwish (önerilen)':<35} "
-
-          f"{args.own_acc*100:>7.2f}% {args.own_f1:>8.4f} "
-
-          f"{args.own_params/1e6:>10.2f} {args.own_inf:>8.1f}")
 
     print("="*60)
 

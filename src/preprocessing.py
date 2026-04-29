@@ -191,6 +191,138 @@ class PreprocessingFilters:
         return result.astype(np.float32) / 255.0
 
     @staticmethod
+    def _macenko_normalize(img: np.ndarray) -> np.ndarray:
+        """
+        Macenko SVD stain normalization for MGG/Giemsa blood smear images.
+        Extracts per-image stain vectors via SVD, then scales concentrations to
+        a fixed MGG reference. This removes scanner- and batch-level color drift
+        without requiring an external reference image at runtime.
+        Falls back to input unchanged if foreground pixels are too few or SVD fails.
+        """
+        # MGG reference: col0 = azure/methylene-blue (nuclei), col1 = eosin (cytoplasm).
+        # Derived from typical well-stained Raabin WBC images (approximate unit vectors).
+        REF_STAIN = np.array(
+            [[0.606, 0.258], [0.757, 0.818], [0.244, 0.516]], dtype=np.float64
+        )
+        REF_MAX_C = np.array([1.5, 1.0], dtype=np.float64)
+
+        src = np.maximum(img.astype(np.float64), 1.0)
+        OD = -np.log(src / 255.0)
+        OD_flat = OD.reshape(-1, 3)
+
+        # Keep only foreground pixels (background has near-zero OD).
+        foreground = np.sum(OD_flat ** 2, axis=1) > 0.12
+        OD_hat = OD_flat[foreground]
+        if len(OD_hat) < 100:
+            return img
+
+        try:
+            _, _, Vt = np.linalg.svd(OD_hat, full_matrices=False)
+            V = Vt[:2].T  # (3, 2) — plane spanned by dominant stain directions
+
+            That = OD_hat @ V
+            phi = np.arctan2(That[:, 1], That[:, 0])
+            v1 = V @ np.array([np.cos(np.percentile(phi, 1)), np.sin(np.percentile(phi, 1))])
+            v2 = V @ np.array([np.cos(np.percentile(phi, 99)), np.sin(np.percentile(phi, 99))])
+
+            # Assign: stain with higher R-OD is azure/methylene-blue (nuclei).
+            HE = np.column_stack([v1, v2]) if v1[0] > v2[0] else np.column_stack([v2, v1])
+            HE = HE / (np.linalg.norm(HE, axis=0) + 1e-8)
+
+            C, _, _, _ = np.linalg.lstsq(HE, OD_flat.T, rcond=None)
+            maxC = np.maximum(np.percentile(C, 99, axis=1), 1e-6)
+            C_norm = C * (REF_MAX_C[:, None] / maxC[:, None])
+
+            OD_norm = (REF_STAIN @ C_norm).T.reshape(img.shape)
+            return np.clip(np.exp(-OD_norm) * 255.0, 0, 255).astype(np.uint8)
+        except (np.linalg.LinAlgError, ValueError):
+            return img
+
+    @staticmethod
+    def medical_enhanced_v2(image: np.ndarray) -> np.ndarray:
+        """
+        Adaptive-CLAHE variant of medical_enhanced.
+        Key differences from v1:
+          - CLAHE clip limit adapts to per-image L-channel std (low contrast → gentler boost).
+          - Tile grid enlarged from (4,4) to (8,8) — less aggressive local contrast.
+        Reduces noise amplification on low-contrast or over-exposed smears.
+        """
+        normalized = image.copy().astype(np.float32)
+        for i in range(3):
+            ch = normalized[:, :, i]
+            p2, p98 = np.percentile(ch, (2, 98))
+            normalized[:, :, i] = np.clip((ch - p2) / (p98 - p2 + 1e-6) * 255, 0, 255)
+        normalized = normalized.astype(np.uint8)
+
+        lab = cv2.cvtColor(normalized, cv2.COLOR_RGB2LAB)
+        l, a, b = cv2.split(lab)
+        clip = float(np.clip(1.0 + (float(l.std()) / 128.0) * 2.5, 1.0, 4.0))
+        l = cv2.createCLAHE(clipLimit=clip, tileGridSize=(8, 8)).apply(l)
+        enhanced = cv2.cvtColor(cv2.merge([l, a, b]), cv2.COLOR_LAB2RGB)
+
+        enhanced = cv2.bilateralFilter(enhanced, 5, 50, 50)
+
+        gray = cv2.cvtColor(enhanced, cv2.COLOR_RGB2GRAY)
+        edges = cv2.dilate(cv2.Canny(gray, 50, 150), None, iterations=1)
+        sharpened = cv2.filter2D(enhanced, -1, np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]]))
+        mask = np.stack(
+            [cv2.GaussianBlur(edges.astype(np.float32) / 255.0, (5, 5), 0)] * 3, axis=-1
+        )
+        result = (enhanced * (1 - mask * 0.3) + sharpened * mask * 0.3).astype(np.uint8)
+        return result.astype(np.float32) / 255.0
+
+    @staticmethod
+    def medical_enhanced_v3(image: np.ndarray) -> np.ndarray:
+        """
+        v2 + morphological top-hat/bottom-hat enhancement.
+        Top-hat recovers bright granules (eosinophilic granules, cytoplasm);
+        bottom-hat recovers dark nucleus features.
+        Improves Eosinophil and Basophil separation from background.
+        """
+        normalized = image.copy().astype(np.float32)
+        for i in range(3):
+            ch = normalized[:, :, i]
+            p2, p98 = np.percentile(ch, (2, 98))
+            normalized[:, :, i] = np.clip((ch - p2) / (p98 - p2 + 1e-6) * 255, 0, 255)
+        normalized = normalized.astype(np.uint8)
+
+        lab = cv2.cvtColor(normalized, cv2.COLOR_RGB2LAB)
+        l, a, b = cv2.split(lab)
+        clip = float(np.clip(1.0 + (float(l.std()) / 128.0) * 2.5, 1.0, 4.0))
+        l = cv2.createCLAHE(clipLimit=clip, tileGridSize=(8, 8)).apply(l)
+        enhanced = cv2.cvtColor(cv2.merge([l, a, b]), cv2.COLOR_LAB2RGB)
+        enhanced = cv2.bilateralFilter(enhanced, 5, 50, 50)
+
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (11, 11))
+        tophat = cv2.morphologyEx(enhanced, cv2.MORPH_TOPHAT, kernel)
+        blackhat = cv2.morphologyEx(enhanced, cv2.MORPH_BLACKHAT, kernel)
+        enhanced = np.clip(
+            enhanced.astype(np.int16) + tophat.astype(np.int16) - blackhat.astype(np.int16),
+            0, 255,
+        ).astype(np.uint8)
+
+        gray = cv2.cvtColor(enhanced, cv2.COLOR_RGB2GRAY)
+        edges = cv2.dilate(cv2.Canny(gray, 50, 150), None, iterations=1)
+        sharpened = cv2.filter2D(enhanced, -1, np.array([[-1, -1, -1], [-1, 9, -1], [-1, -1, -1]]))
+        mask = np.stack(
+            [cv2.GaussianBlur(edges.astype(np.float32) / 255.0, (5, 5), 0)] * 3, axis=-1
+        )
+        result = (enhanced * (1 - mask * 0.3) + sharpened * mask * 0.3).astype(np.uint8)
+        return result.astype(np.float32) / 255.0
+
+    @staticmethod
+    def medical_enhanced_v4(image: np.ndarray) -> np.ndarray:
+        """
+        v3 + Macenko SVD stain normalization (self-contained, no external reference).
+        Macenko runs first to strip scanner/batch color drift before contrast enhancement.
+        Strongest domain-shift robustness — recommended when --color-normalization=none
+        (Macenko already handles color normalization; Reinhard on top is redundant).
+        """
+        img = _to_uint8(image)
+        img = PreprocessingFilters._macenko_normalize(img)
+        return PreprocessingFilters.medical_enhanced_v3(img.astype(np.float32))
+
+    @staticmethod
     def estimate_foreground_mask(image: np.ndarray) -> np.ndarray:
         """
         Estimate a soft foreground mask for the leukocyte region.
