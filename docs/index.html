@@ -1017,6 +1017,7 @@
 
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
+                formData.append('lang', currentLang); // Send selected language to server
 
                 try {
                     const response = await fetch(
