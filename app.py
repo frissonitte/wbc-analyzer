@@ -258,31 +258,61 @@ def get_env_token(*names):
 
 # Class-specific morphology anchors to reduce generic report patterns.
 CLASS_MORPHOLOGY_CONTEXT = {
-    "Neutrophil": (
-        "Neutrophils are identified by their multi-lobed nucleus (typically 3-5 lobes) "
-        "and pale pink cytoplasm with fine granules. The model should focus on the nuclear "
-        "lobes and their interconnecting filaments, not on background erythrocytes."
-    ),
-    "Lymphocyte": (
-        "Lymphocytes have a large, round, darkly stained nucleus that nearly fills the cell, "
-        "with only a thin rim of pale blue cytoplasm. Correct model focus should be on the "
-        "nucleus-to-cytoplasm ratio and nuclear chromatin density."
-    ),
-    "Monocyte": (
-        "Monocytes are the largest leukocytes with a kidney-shaped or horseshoe-shaped nucleus "
-        "and abundant gray-blue cytoplasm that may contain vacuoles. The nucleus shape and "
-        "cytoplasmic texture are the key discriminating features."
-    ),
-    "Eosinophil": (
-        "Eosinophils have a bilobed nucleus and distinctive large, bright orange-red granules "
-        "filling the cytoplasm. The granule pattern and bilobed nucleus, not background cells, "
-        "should be the model focus."
-    ),
-    "Basophil": (
-        "Basophils are rare and characterized by large, dark purple-blue granules that may "
-        "obscure the nucleus. Correct focus should be on these coarse, deeply stained granules "
-        "and the irregular nuclear outline beneath them."
-    ),
+    "en": {
+        "Neutrophil": (
+            "Neutrophils are identified by their multi-lobed nucleus (typically 3-5 lobes) "
+            "and pale pink cytoplasm with fine granules. The model should focus on the nuclear "
+            "lobes and their interconnecting filaments, not on background erythrocytes."
+        ),
+        "Lymphocyte": (
+            "Lymphocytes have a large, round, darkly stained nucleus that nearly fills the cell, "
+            "with only a thin rim of pale blue cytoplasm. Correct model focus should be on the "
+            "nucleus-to-cytoplasm ratio and nuclear chromatin density."
+        ),
+        "Monocyte": (
+            "Monocytes are the largest leukocytes with a kidney-shaped or horseshoe-shaped nucleus "
+            "and abundant gray-blue cytoplasm that may contain vacuoles. The nucleus shape and "
+            "cytoplasmic texture are the key discriminating features."
+        ),
+        "Eosinophil": (
+            "Eosinophils have a bilobed nucleus and distinctive large, bright orange-red granules "
+            "filling the cytoplasm. The granule pattern and bilobed nucleus, not background cells, "
+            "should be the model focus."
+        ),
+        "Basophil": (
+            "Basophils are rare and characterized by large, dark purple-blue granules that may "
+            "obscure the nucleus. Correct focus should be on these coarse, deeply stained granules "
+            "and the irregular nuclear outline beneath them."
+        ),
+    },
+    "tr": {
+        "Neutrophil": (
+            "Nötrofiller, tipik olarak 3-5 loblu çok parçalı çekirdekleri ve ince granüllü "
+            "soluk pembe sitoplazmaları ile tanınır. Modelin odağı, arka plandaki eritrositler "
+            "değil, çekirdek lobları ve bunları birbirine bağlayan filamentler olmalıdır."
+        ),
+        "Lymphocyte": (
+            "Lenfositlerde büyük, yuvarlak ve koyu boyanan çekirdek hücreyi neredeyse tamamen "
+            "doldurur; etrafında yalnızca ince bir soluk mavi sitoplazma şeridi bulunur. "
+            "Modelin doğru odak noktası, çekirdek-sitoplazma oranı ve nükleer kromatin "
+            "yoğunluğu olmalıdır."
+        ),
+        "Monocyte": (
+            "Monositler, böbrek veya at nalı şeklinde çekirdekleri ve vakuol içerebilen bol "
+            "gri-mavi sitoplazmaları ile en büyük lökositlerdir. Çekirdek şekli ve sitoplazma "
+            "dokusu temel ayırt edici özelliklerdir."
+        ),
+        "Eosinophil": (
+            "Eozinofiller, biloblu çekirdekleri ve sitoplazmayı dolduran belirgin büyük, "
+            "parlak turuncu-kırmızı granülleriyle tanınır. Modelin odağı, arka plan hücreler "
+            "değil, granül deseni ve biloblu çekirdek olmalıdır."
+        ),
+        "Basophil": (
+            "Bazofiller, çekirdeği örterek gizleyebilen büyük, koyu mor-mavi granülleriyle "
+            "nadir görülen hücrelerdir. Doğru odak noktası, bu kaba ve derin boyanan granüller "
+            "ile altındaki düzensiz çekirdek sınırı olmalıdır."
+        ),
+    },
 }
 
 
@@ -307,16 +337,17 @@ Constraints:
 """
 
 
-def build_agent_prompt(predicted_class, confidence):
+def build_agent_prompt(predicted_class, confidence, lang="en"):
     """Build a class-aware prompt so each report uses distinct morphology anchors."""
-    context = CLASS_MORPHOLOGY_CONTEXT.get(predicted_class, "")
+    lang_ctx = CLASS_MORPHOLOGY_CONTEXT.get(lang, CLASS_MORPHOLOGY_CONTEXT["en"])
+    context = lang_ctx.get(predicted_class, "")
+
     if confidence >= 0.90:
         confidence_descriptor = "high"
     elif confidence >= 0.70:
         confidence_descriptor = "moderate"
     else:
         confidence_descriptor = "low"
-
     return (
         f"The classification model predicted '{predicted_class}' with {confidence_descriptor} "
         f"confidence ({confidence * 100:.1f}%). "
@@ -344,7 +375,7 @@ def generate_agent_report(predicted_class, confidence, heatmap_img_array, lang="
         img_rgb = cv2.cvtColor(heatmap_img_array, cv2.COLOR_BGR2RGB)
         pil_image = PIL.Image.fromarray(img_rgb)
 
-        prompt = build_agent_prompt(predicted_class, confidence)
+        prompt = build_agent_prompt(predicted_class, confidence, lang)
 
         dynamic_instruction = SYSTEM_INSTRUCTION
         if lang == "tr":
