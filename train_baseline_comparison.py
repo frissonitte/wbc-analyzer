@@ -12,9 +12,6 @@ import numpy as np
 
 import tensorflow as tf
 
-
-# ORİJİNAL PREPROCESSING SINIFI İÇE AKTARILIYOR
-
 from src.preprocessing import PreprocessingFilters
 
 

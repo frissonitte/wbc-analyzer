@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tensorflow import keras
+import keras
 
 
 @tf.keras.utils.register_keras_serializable(package="WBC")
