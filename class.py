@@ -40,7 +40,7 @@ def parse_args():
     )
     parser.add_argument(
         "--output-dir",
-        default="outputs/final",
+        default="outputs/final_model_evaluation",
         help="Directory where reports and visualizations will be saved.",
     )
     parser.add_argument(
@@ -83,6 +83,18 @@ def parse_args():
         type=int,
         default=1200,
         help="Maximum number of images used to estimate the Reinhard reference.",
+    )
+    parser.add_argument(
+        "--preprocessing",
+        choices=["v1", "v2", "v3", "v4"],
+        default="v1",
+        help=(
+            "medical_enhanced variant: "
+            "v1=original (clip+CLAHE+bilateral+sharp), "
+            "v2=adaptive-CLAHE tileGrid(8x8), "
+            "v3=v2+top-hat/bottom-hat, "
+            "v4=v3+Macenko stain normalization."
+        ),
     )
     parser.add_argument(
         "--seed",
@@ -236,7 +248,15 @@ def collect_samples(split_dir, limit=None):
     return samples
 
 
-def preprocess_image(image_path, color_normalization, target_lab_mean, target_lab_std):
+_PREPROCESSING_DISPATCH = {
+    "v1": PreprocessingFilters.medical_enhanced,
+    "v2": PreprocessingFilters.medical_enhanced_v2,
+    "v3": PreprocessingFilters.medical_enhanced_v3,
+    "v4": PreprocessingFilters.medical_enhanced_v4,
+}
+
+
+def preprocess_image(image_path, color_normalization, target_lab_mean, target_lab_std, preprocessing="v1"):
     """Load, resize, normalize, and enhance a single image for inference."""
     try:
         image = Image.open(image_path).convert("RGB")
@@ -245,9 +265,11 @@ def preprocess_image(image_path, color_normalization, target_lab_mean, target_la
 
     image_np = np.array(image)
     image_np = cv2.resize(image_np, (224, 224))
-    if color_normalization == "reinhard":
+    # v4 does its own Macenko stain normalization; Reinhard on top is redundant.
+    if color_normalization == "reinhard" and preprocessing != "v4":
         image_np = apply_reinhard_normalization(image_np, target_lab_mean, target_lab_std)
-    return PreprocessingFilters.medical_enhanced(image_np)
+    enhance_fn = _PREPROCESSING_DISPATCH.get(preprocessing, PreprocessingFilters.medical_enhanced)
+    return enhance_fn(image_np)
 
 
 def build_tta_batch(image):
@@ -340,6 +362,7 @@ def predict_samples(
     color_normalization,
     target_lab_mean,
     target_lab_std,
+    preprocessing="v1",
 ):
     """Predict a split in mini-batches and return labels, probabilities, and paths."""
     label_to_index = {name: idx for idx, name in enumerate(CLASS_NAMES)}
@@ -362,6 +385,7 @@ def predict_samples(
                         color_normalization=color_normalization,
                         target_lab_mean=target_lab_mean,
                         target_lab_std=target_lab_std,
+                        preprocessing=preprocessing,
                     )
                 )
                 batch_true.append(label_to_index[class_name])
@@ -524,6 +548,7 @@ def evaluate_split(
     color_normalization,
     target_lab_mean,
     target_lab_std,
+    preprocessing="v1",
     limit=None,
 ):
     """Evaluate one split, write report artifacts, and return raw prediction data."""
@@ -543,6 +568,7 @@ def evaluate_split(
         color_normalization=color_normalization,
         target_lab_mean=target_lab_mean,
         target_lab_std=target_lab_std,
+        preprocessing=preprocessing,
     )
 
     report_text, _ = build_classification_report(y_true, y_pred)
@@ -636,6 +662,7 @@ def main():
     print(f"TTA: {args.tta}")
     print(f"TestB binary mode: {args.testb_binary_mode}")
     print(f"Color normalization: {args.color_normalization}")
+    print(f"Preprocessing: {args.preprocessing}")
 
     model = load_trained_model(model_path)
 
@@ -674,6 +701,7 @@ def main():
                 color_normalization=args.color_normalization,
                 target_lab_mean=target_lab_mean,
                 target_lab_std=target_lab_std,
+                preprocessing=args.preprocessing,
                 limit=args.limit,
             )
         )

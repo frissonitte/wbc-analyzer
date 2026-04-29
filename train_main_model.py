@@ -34,7 +34,7 @@ def parse_args():
     parser.add_argument("--phase1-epochs", type=int, default=15, help="Feature extraction epochs.")
     parser.add_argument("--phase2-epochs", type=int, default=15, help="Fine-tuning epochs.")
     parser.add_argument("--model-path", default="data/models/wbc_final_model_densenet.keras", help="Output model path.")
-    parser.add_argument("--results-dir", default="results_shortcut_resistant", help="Directory for plots and logs.")
+    parser.add_argument("--results-dir", default="outputs/final_model_results", help="Directory for plots and logs.")
     parser.add_argument("--crop-prob", type=float, default=0.2, help="Probability of applying foreground crop during training.")
     parser.add_argument("--bg-randomization-prob", type=float, default=0.15, help="Probability of applying background randomization during training.")
     parser.add_argument("--bg-randomization-strength", type=float, default=0.35, help="Mixing strength for synthetic background on non-foreground regions.")
@@ -843,7 +843,7 @@ def main():
     Path(args.model_path).parent.mkdir(parents=True, exist_ok=True)
 
     write_split_summary(
-        summary_path=results_dir / "train_val_split_summary.csv",
+        summary_path=results_dir / "final_model_split_summary.csv",
         class_names=class_names,
         train_samples=train_samples,
         val_samples=val_samples,
@@ -1016,12 +1016,12 @@ def main():
     plot_history(
         history_phase1,
         history_phase2,
-        output_path=results_dir / "training_history_shortcut_resistant.png",
+        output_path=results_dir / "final_model_training_history.png",
     )
 
     print(f"\nTraining completed. Best model path: {args.model_path}")
-    print(f"Split summary: {results_dir / 'train_val_split_summary.csv'}")
-    print(f"History plot: {results_dir / 'training_history_shortcut_resistant.png'}")
+    print(f"Split summary: {results_dir / 'final_model_split_summary.csv'}")
+    print(f"History plot: {results_dir / 'final_model_training_history.png'}")
 
 
 if __name__ == "__main__":
