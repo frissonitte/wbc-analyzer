@@ -1,0 +1,11 @@
+class             precision      recall    f1-score   support
+
+Basophil             0.0000      0.0000      0.0000         0
+Eosinophil           0.0000      0.0000      0.0000         0
+Lymphocyte           0.3889      0.9932      0.5589       148
+Monocyte             0.0000      0.0000      0.0000         0
+Neutrophil           0.9994      0.8828      0.9375      1971
+
+accuracy                                     0.8905      2119
+macro avg            0.2777      0.3752      0.2993      2119
+weighted avg         0.9568      0.8905      0.9111      2119

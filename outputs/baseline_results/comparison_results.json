@@ -1,0 +1,262 @@
+[
+  {
+    "model": "VGG16",
+    "val_accuracy": 0.9855832241153342,
+    "macro_f1": 0.9724464295665053,
+    "total_params": 15113029,
+    "inf_time_ms": 18.07880564003426,
+    "per_class": {
+      "Basophil": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 36.0
+      },
+      "Eosinophil": {
+        "precision": 0.9838709677419355,
+        "recall": 0.976,
+        "f1-score": 0.9799196787148594,
+        "support": 125.0
+      },
+      "Lymphocyte": {
+        "precision": 0.970108695652174,
+        "recall": 0.9944289693593314,
+        "f1-score": 0.9821182943603851,
+        "support": 359.0
+      },
+      "Monocyte": {
+        "precision": 0.9577464788732394,
+        "recall": 0.8607594936708861,
+        "f1-score": 0.9066666666666666,
+        "support": 79.0
+      },
+      "Neutrophil": {
+        "precision": 0.9935275080906149,
+        "recall": 0.9935275080906149,
+        "f1-score": 0.9935275080906149,
+        "support": 927.0
+      },
+      "accuracy": 0.9855832241153342,
+      "macro avg": {
+        "precision": 0.9810507300715928,
+        "recall": 0.9649431942241666,
+        "f1-score": 0.9724464295665053,
+        "support": 1526.0
+      },
+      "weighted avg": {
+        "precision": 0.9855274341663554,
+        "recall": 0.9855832241153342,
+        "f1-score": 0.9853847275107487,
+        "support": 1526.0
+      }
+    }
+  },
+  {
+    "model": "ResNet50V2",
+    "val_accuracy": 0.981651376146789,
+    "macro_f1": 0.970445609100485,
+    "total_params": 24749573,
+    "inf_time_ms": 103.89911015998223,
+    "per_class": {
+      "Basophil": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 36.0
+      },
+      "Eosinophil": {
+        "precision": 0.96,
+        "recall": 0.96,
+        "f1-score": 0.96,
+        "support": 125.0
+      },
+      "Lymphocyte": {
+        "precision": 0.9886685552407932,
+        "recall": 0.9721448467966574,
+        "f1-score": 0.9803370786516854,
+        "support": 359.0
+      },
+      "Monocyte": {
+        "precision": 0.875,
+        "recall": 0.9746835443037974,
+        "f1-score": 0.9221556886227545,
+        "support": 79.0
+      },
+      "Neutrophil": {
+        "precision": 0.9913419913419913,
+        "recall": 0.9881337648327939,
+        "f1-score": 0.9897352782279849,
+        "support": 927.0
+      },
+      "accuracy": 0.981651376146789,
+      "macro avg": {
+        "precision": 0.9630021093165568,
+        "recall": 0.9789924311866496,
+        "f1-score": 0.970445609100485,
+        "support": 1526.0
+      },
+      "weighted avg": {
+        "precision": 0.9823270231359573,
+        "recall": 0.981651376146789,
+        "f1-score": 0.9818321845049114,
+        "support": 1526.0
+      }
+    }
+  },
+  {
+    "model": "MobileNetV2",
+    "val_accuracy": 0.9790301441677588,
+    "macro_f1": 0.957705297021292,
+    "total_params": 3049541,
+    "inf_time_ms": 95.97378997998021,
+    "per_class": {
+      "Basophil": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 36.0
+      },
+      "Eosinophil": {
+        "precision": 0.9512195121951219,
+        "recall": 0.936,
+        "f1-score": 0.9435483870967742,
+        "support": 125.0
+      },
+      "Lymphocyte": {
+        "precision": 0.9886685552407932,
+        "recall": 0.9721448467966574,
+        "f1-score": 0.9803370786516854,
+        "support": 359.0
+      },
+      "Monocyte": {
+        "precision": 0.8372093023255814,
+        "recall": 0.9113924050632911,
+        "f1-score": 0.8727272727272727,
+        "support": 79.0
+      },
+      "Neutrophil": {
+        "precision": 0.9913793103448276,
+        "recall": 0.9924487594390508,
+        "f1-score": 0.9919137466307277,
+        "support": 927.0
+      },
+      "accuracy": 0.9790301441677588,
+      "macro avg": {
+        "precision": 0.953695336021265,
+        "recall": 0.9623972022597999,
+        "f1-score": 0.957705297021292,
+        "support": 1526.0
+      },
+      "weighted avg": {
+        "precision": 0.9796740536888671,
+        "recall": 0.9790301441677588,
+        "f1-score": 0.9792490545840045,
+        "support": 1526.0
+      }
+    }
+  },
+  {
+    "model": "EfficientNetB0",
+    "val_accuracy": 0.9705111402359109,
+    "macro_f1": 0.9418326081235804,
+    "total_params": 4841128,
+    "inf_time_ms": 185.37602618014716,
+    "per_class": {
+      "Basophil": {
+        "precision": 0.9473684210526315,
+        "recall": 1.0,
+        "f1-score": 0.972972972972973,
+        "support": 36.0
+      },
+      "Eosinophil": {
+        "precision": 0.956140350877193,
+        "recall": 0.872,
+        "f1-score": 0.9121338912133892,
+        "support": 125.0
+      },
+      "Lymphocyte": {
+        "precision": 0.9859550561797753,
+        "recall": 0.9777158774373259,
+        "f1-score": 0.9818181818181818,
+        "support": 359.0
+      },
+      "Monocyte": {
+        "precision": 0.8333333333333334,
+        "recall": 0.8860759493670886,
+        "f1-score": 0.8588957055214724,
+        "support": 79.0
+      },
+      "Neutrophil": {
+        "precision": 0.9796573875802997,
+        "recall": 0.9870550161812298,
+        "f1-score": 0.983342289091886,
+        "support": 927.0
+      },
+      "accuracy": 0.9705111402359109,
+      "macro avg": {
+        "precision": 0.9404909098046466,
+        "recall": 0.9445693685971287,
+        "f1-score": 0.9418326081235804,
+        "support": 1526.0
+      },
+      "weighted avg": {
+        "precision": 0.9708757560985285,
+        "recall": 0.9705111402359109,
+        "f1-score": 0.9704636654166465,
+        "support": 1526.0
+      }
+    }
+  },
+  {
+    "model": "DenseNet121_vanilla",
+    "val_accuracy": 0.9888597640891219,
+    "macro_f1": 0.9803478147553625,
+    "total_params": 7697989,
+    "inf_time_ms": 232.18840471998192,
+    "per_class": {
+      "Basophil": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 36.0
+      },
+      "Eosinophil": {
+        "precision": 0.9915966386554622,
+        "recall": 0.944,
+        "f1-score": 0.9672131147540983,
+        "support": 125.0
+      },
+      "Lymphocyte": {
+        "precision": 0.9971830985915493,
+        "recall": 0.9860724233983287,
+        "f1-score": 0.9915966386554622,
+        "support": 359.0
+      },
+      "Monocyte": {
+        "precision": 0.9493670886075949,
+        "recall": 0.9493670886075949,
+        "f1-score": 0.9493670886075949,
+        "support": 79.0
+      },
+      "Neutrophil": {
+        "precision": 0.9882604055496265,
+        "recall": 0.9989212513484358,
+        "f1-score": 0.9935622317596566,
+        "support": 927.0
+      },
+      "accuracy": 0.9888597640891219,
+      "macro avg": {
+        "precision": 0.9852814462808466,
+        "recall": 0.9756721526708718,
+        "f1-score": 0.9803478147553625,
+        "support": 1526.0
+      },
+      "weighted avg": {
+        "precision": 0.9888962700988222,
+        "recall": 0.9888597640891219,
+        "f1-score": 0.9888053875902849,
+        "support": 1526.0
+      }
+    }
+  }
+]
