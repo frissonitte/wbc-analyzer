@@ -325,7 +325,7 @@ def build_agent_prompt(predicted_class, confidence):
         "aligns with these expected morphological features or shows signs of background dependency."
     )
 
-def generate_agent_report(predicted_class, confidence, heatmap_img_array):
+def generate_agent_report(predicted_class, confidence, heatmap_img_array, lang="en"):
     """Generate a concise LLM-based interpretation report from XAI overlay image."""
     try:
         load_dotenv()
@@ -343,8 +343,14 @@ def generate_agent_report(predicted_class, confidence, heatmap_img_array):
 
         img_rgb = cv2.cvtColor(heatmap_img_array, cv2.COLOR_BGR2RGB)
         pil_image = PIL.Image.fromarray(img_rgb)
-        
+
         prompt = build_agent_prompt(predicted_class, confidence)
+
+        dynamic_instruction = SYSTEM_INSTRUCTION
+        if lang == "tr":
+            dynamic_instruction += "\n\nCRITICAL INSTRUCTION: You MUST write your ENTIRE response in Turkish (Türkçe)."
+        else:
+            dynamic_instruction += "\n\nCRITICAL INSTRUCTION: You MUST write your ENTIRE response in English."
 
         primary_error = None
         gemini_error = None
@@ -355,7 +361,7 @@ def generate_agent_report(predicted_class, confidence, heatmap_img_array):
                 response_text = generate_agent_report_with_gpt4o(
                     prompt,
                     heatmap_img_array,
-                    SYSTEM_INSTRUCTION,
+                    dynamic_instruction,
                     github_token,
                 )
                 if response_text:
@@ -376,7 +382,7 @@ def generate_agent_report(predicted_class, confidence, heatmap_img_array):
                     model="gemini-2.5-flash",
                     contents=[prompt, pil_image],
                     config=types.GenerateContentConfig(
-                        system_instruction=SYSTEM_INSTRUCTION,
+                        system_instruction=dynamic_instruction,
                         temperature=0.2,
                     ),
                 )
@@ -489,6 +495,7 @@ def predict():
         return jsonify({"error": "No file was found."}), 400
 
     file = request.files["file"]
+    lang = request.form.get("lang", "en")
 
     if file.content_type not in ALLOWED_MIME_TYPES:
         return (
@@ -620,7 +627,7 @@ def predict():
         agent_report_model = "Unknown"
         if superimposed_img is not None:
             print("Generating agent report...")
-            agent_result = generate_agent_report(predicted_class, confidence, superimposed_img)
+            agent_result = generate_agent_report(predicted_class, confidence, superimposed_img, lang)
             if isinstance(agent_result, dict):
                 agent_report = str(agent_result.get("text", "")).strip()
                 agent_report_model = str(agent_result.get("provider", "Unknown")).strip()
