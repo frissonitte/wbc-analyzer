@@ -258,61 +258,31 @@ def get_env_token(*names):
 
 # Class-specific morphology anchors to reduce generic report patterns.
 CLASS_MORPHOLOGY_CONTEXT = {
-    "en": {
-        "Neutrophil": (
-            "Neutrophils are identified by their multi-lobed nucleus (typically 3-5 lobes) "
-            "and pale pink cytoplasm with fine granules. The model should focus on the nuclear "
-            "lobes and their interconnecting filaments, not on background erythrocytes."
-        ),
-        "Lymphocyte": (
-            "Lymphocytes have a large, round, darkly stained nucleus that nearly fills the cell, "
-            "with only a thin rim of pale blue cytoplasm. Correct model focus should be on the "
-            "nucleus-to-cytoplasm ratio and nuclear chromatin density."
-        ),
-        "Monocyte": (
-            "Monocytes are the largest leukocytes with a kidney-shaped or horseshoe-shaped nucleus "
-            "and abundant gray-blue cytoplasm that may contain vacuoles. The nucleus shape and "
-            "cytoplasmic texture are the key discriminating features."
-        ),
-        "Eosinophil": (
-            "Eosinophils have a bilobed nucleus and distinctive large, bright orange-red granules "
-            "filling the cytoplasm. The granule pattern and bilobed nucleus, not background cells, "
-            "should be the model focus."
-        ),
-        "Basophil": (
-            "Basophils are rare and characterized by large, dark purple-blue granules that may "
-            "obscure the nucleus. Correct focus should be on these coarse, deeply stained granules "
-            "and the irregular nuclear outline beneath them."
-        ),
-    },
-    "tr": {
-        "Neutrophil": (
-            "Nötrofiller, tipik olarak 3-5 loblu çok parçalı çekirdekleri ve ince granüllü "
-            "soluk pembe sitoplazmaları ile tanınır. Modelin odağı, arka plandaki eritrositler "
-            "değil, çekirdek lobları ve bunları birbirine bağlayan filamentler olmalıdır."
-        ),
-        "Lymphocyte": (
-            "Lenfositlerde büyük, yuvarlak ve koyu boyanan çekirdek hücreyi neredeyse tamamen "
-            "doldurur; etrafında yalnızca ince bir soluk mavi sitoplazma şeridi bulunur. "
-            "Modelin doğru odak noktası, çekirdek-sitoplazma oranı ve nükleer kromatin "
-            "yoğunluğu olmalıdır."
-        ),
-        "Monocyte": (
-            "Monositler, böbrek veya at nalı şeklinde çekirdekleri ve vakuol içerebilen bol "
-            "gri-mavi sitoplazmaları ile en büyük lökositlerdir. Çekirdek şekli ve sitoplazma "
-            "dokusu temel ayırt edici özelliklerdir."
-        ),
-        "Eosinophil": (
-            "Eozinofiller, biloblu çekirdekleri ve sitoplazmayı dolduran belirgin büyük, "
-            "parlak turuncu-kırmızı granülleriyle tanınır. Modelin odağı, arka plan hücreler "
-            "değil, granül deseni ve biloblu çekirdek olmalıdır."
-        ),
-        "Basophil": (
-            "Bazofiller, çekirdeği örterek gizleyebilen büyük, koyu mor-mavi granülleriyle "
-            "nadir görülen hücrelerdir. Doğru odak noktası, bu kaba ve derin boyanan granüller "
-            "ile altındaki düzensiz çekirdek sınırı olmalıdır."
-        ),
-    },
+    "Neutrophil": (
+        "Neutrophils are identified by their multi-lobed nucleus (typically 3-5 lobes) "
+        "and pale pink cytoplasm with fine granules. The model should focus on the nuclear "
+        "lobes and their interconnecting filaments, not on background erythrocytes."
+    ),
+    "Lymphocyte": (
+        "Lymphocytes have a large, round, darkly stained nucleus that nearly fills the cell, "
+        "with only a thin rim of pale blue cytoplasm. Correct model focus should be on the "
+        "nucleus-to-cytoplasm ratio and nuclear chromatin density."
+    ),
+    "Monocyte": (
+        "Monocytes are the largest leukocytes with a kidney-shaped or horseshoe-shaped nucleus "
+        "and abundant gray-blue cytoplasm that may contain vacuoles. The nucleus shape and "
+        "cytoplasmic texture are the key discriminating features."
+    ),
+    "Eosinophil": (
+        "Eosinophils have a bilobed nucleus and distinctive large, bright orange-red granules "
+        "filling the cytoplasm. The granule pattern and bilobed nucleus, not background cells, "
+        "should be the model focus."
+    ),
+    "Basophil": (
+        "Basophils are rare and characterized by large, dark purple-blue granules that may "
+        "obscure the nucleus. Correct focus should be on these coarse, deeply stained granules "
+        "and the irregular nuclear outline beneath them."
+    ),
 }
 
 
@@ -339,8 +309,7 @@ Constraints:
 
 def build_agent_prompt(predicted_class, confidence, lang="en"):
     """Build a class-aware prompt so each report uses distinct morphology anchors."""
-    lang_ctx = CLASS_MORPHOLOGY_CONTEXT.get(lang, CLASS_MORPHOLOGY_CONTEXT["en"])
-    context = lang_ctx.get(predicted_class, "")
+    context = CLASS_MORPHOLOGY_CONTEXT.get(predicted_class, "")
 
     if confidence >= 0.90:
         confidence_descriptor = "high"
@@ -496,11 +465,20 @@ except Exception as e:
 class_names = ["Basophil", "Eosinophil", "Lymphocyte", "Monocyte", "Neutrophil"]
 
 class_descriptions = {
-    "Basophil": "Basophils are granulocytes that release histamine in inflammatory reactions (especially allergic). They are rarely seen in peripheral blood smears (<1%).",
-    "Eosinophil": "Eosinophils are involved in defense against parasitic infections and modulation of allergic responses. Orange-red granules are characteristic of their cytoplasm.",
-    "Lymphocyte": "Lymphocytes (T, B, NK) are central to the adaptive immune system. Their numbers increase in viral infections. Their nuclei are usually round and darkly stained.",
-    "Monocyte": "Monocytes are large leukocytes that migrate to tissues, transform into macrophages, and perform phagocytosis. Their nuclei are usually kidney-shaped or horseshoe-shaped.",
-    "Neutrophil": "Neutrophils are the most common type of leukocyte (40-70%), forming the first line of defense against bacterial infections. They have a multilobed nucleus.",
+    "en": {
+        "Basophil": "Basophils are granulocytes that release histamine in inflammatory reactions (especially allergic). They are rarely seen in peripheral blood smears (<1%).",
+        "Eosinophil": "Eosinophils are involved in defense against parasitic infections and modulation of allergic responses. Orange-red granules are characteristic of their cytoplasm.",
+        "Lymphocyte": "Lymphocytes (T, B, NK) are central to the adaptive immune system. Their numbers increase in viral infections. Their nuclei are usually round and darkly stained.",
+        "Monocyte": "Monocytes are large leukocytes that migrate to tissues, transform into macrophages, and perform phagocytosis. Their nuclei are usually kidney-shaped or horseshoe-shaped.",
+        "Neutrophil": "Neutrophils are the most common type of leukocyte (40-70%), forming the first line of defense against bacterial infections. They have a multilobed nucleus.",
+    },
+    "tr": {
+        "Basophil": "Bazofiller, özellikle alerjik inflamatuar reaksiyonlarda histamin salgılayan granülositlerdir. Periferik kan yaymasında nadir görülürler (<%1).",
+        "Eosinophil": "Eozinofiller, paraziter enfeksiyonlara karşı savunmada ve alerjik yanıtların düzenlenmesinde rol oynar. Sitoplazmaları turuncu-kırmızı granüllerle doludur.",
+        "Lymphocyte": "Lenfositler (T, B, NK), adaptif bağışıklık sisteminin temel hücreleridir. Viral enfeksiyonlarda sayıları artar. Çekirdekleri genellikle yuvarlak ve koyu boyalıdır.",
+        "Monocyte": "Monositler, dokulara göç ederek makrofaja dönüşen ve fagositoz yapan büyük lökositlerdir. Çekirdekleri genellikle böbrek veya at nalı şeklindedir.",
+        "Neutrophil": "Nötrofiller en yaygın lökosit tipidir (%40-70) ve bakteriyel enfeksiyonlara karşı ilk savunma hattını oluştururlar. Çok parçalı çekirdekleri vardır.",
+    },
 }
 
 
@@ -673,7 +651,7 @@ def predict():
         return jsonify({
             "predicted_class": predicted_class,
             "confidence": confidence,
-            "description": class_descriptions.get(predicted_class, ""),
+            "description": class_descriptions.get(lang, class_descriptions["en"]).get(predicted_class, ""),
             "all_probabilities": all_probs,
             "tech_details": {
                 "filter": "Medical Enhanced (CLAHE + Sharpening)",
