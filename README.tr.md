@@ -174,6 +174,8 @@ python eval_final.py \
 
 ## Sıfırdan Eğitim
 
+> **GPU notu (Windows kullanıcıları):** TensorFlow, Windows'ta pip üzerinden CUDA'yı desteklemez. GPU hızlandırmalı eğitim için CUDA destekli NVIDIA GPU ile **WSL2** kullanın. CUDA araç setini [WSL2 içine kurun](https://developer.nvidia.com/cuda-downloads), ardından eğitim betiklerini WSL2 ortamından çalıştırın. Bu repodaki `requirements.txt` yalnızca çıkarım uygulaması (Windows) içindir; WSL2 eğitimi için ek olarak `nvidia-cublas-cu12`, `nvidia-cudnn-cu12` ve diğer `nvidia-*` CUDA paketlerini de kurmanız gerekir.
+
 **Ana model** (DenseNet121 + WBCAttention + MedSwish + XAI izleme):
 
 ```bash

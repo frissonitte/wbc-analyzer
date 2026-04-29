@@ -170,6 +170,8 @@ Outputs saved to `--output-dir`: `classification_report.txt`, `confusion_matrix.
 
 ## Train from Scratch
 
+> **GPU note (Windows users):** TensorFlow does not support CUDA natively on Windows via pip. For GPU-accelerated training, use **WSL2** with a CUDA-capable NVIDIA GPU. Install the [CUDA toolkit inside WSL2](https://developer.nvidia.com/cuda-downloads), then run training scripts from within the WSL2 environment. The `requirements.txt` in this repo is for the inference app (Windows); for WSL2 training, also install `nvidia-cublas-cu12`, `nvidia-cudnn-cu12`, and the other `nvidia-*` CUDA packages.
+
 **Main model** (DenseNet121 + WBCAttention + MedSwish + XAI monitoring):
 
 ```bash
