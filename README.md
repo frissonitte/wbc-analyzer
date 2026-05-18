@@ -1,124 +1,125 @@
-# WBC Analyzer: AI-Powered Pathology Assistant
+# WBC Analyzer: Robust OOD Generalization in Peripheral Blood Smears
 
-<p align="center">
-  <img src="docs/banner.png" alt="WBC Analyzer Banner" width="100%">
-</p>
+[![DOI](https://img.shields.io/badge/DOI-10.13140/RG.2.2.34201.79208-blue.svg)](https://doi.org/10.13140/RG.2.2.34201.79208)
+[![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
+[![TensorFlow](https://img.shields.io/badge/TensorFlow-2.18-FF6F00.svg)](https://www.tensorflow.org/)
+[![Flask](https://img.shields.io/badge/Flask-REST%20API-000000.svg)](https://flask.palletsprojects.com/)
+
+An end-to-end, production-ready computer vision and software architecture designed to solve the domain shift problem in automated white blood cell (WBC) classification.
+
+While vanilla deep learning models severely degrade when exposed to out-of-distribution (OOD) data arising from different microscopy hardware and staining protocols, this system achieves a **98.53% in-distribution accuracy** while simultaneously demonstrating extreme resilience to domain shift, reaching **89.05% OOD accuracy (a +32.09 percentage point boost over the unadapted baseline)** via a completely retraining-free inference adaptation pipeline.
 
 <p align="center">
   <a href="README.tr.md">🇹🇷 Türkçe</a> &nbsp;|&nbsp; 🇬🇧 English
 </p>
 
-End-to-end deep learning system for automated white blood cell (WBC) classification from peripheral blood smear images — deployed as a production-grade Flask REST API with agentic LLM explainability.
+<p align="center">
+  <a href="https://emirhanyildirim.me/wbc-analyzer/" target="_blank" rel="noopener">
+Live Demo
+  </a>
+</p>
 
 ---
 
-## Results
+## ⚡ Key Contributions
 
-| Set | n | Accuracy | Weighted F1 |
-|-----|---|----------|-------------|
-| **TestA** (in-distribution) | 4,339 | **98.53%** | **0.9854** |
-| **TestB** (domain shift) | 2,119 | **89.05%** | **0.9111** |
-| **Combined** | 6,458 | **95.42%** | **0.9554** |
-
-TestB contains only two classes (Lymphocyte, Neutrophil) from a different microscope — it measures cross-device generalisation, not standard accuracy. Baseline without inference-time adaptation: **56.96%**. Gain after full pipeline: **+32.09 pp**.
-
-**Per-class performance (TestA):**
-
-| Class | Precision | Recall | F1 | Support |
-|-------|-----------|--------|----|---------|
-| Basophil | 1.0000 | 1.0000 | 1.0000 | 89 |
-| Eosinophil | 0.9265 | 0.9783 | 0.9517 | 322 |
-| Lymphocyte | 0.9865 | 0.9884 | 0.9874 | 1,034 |
-| Monocyte | 0.9372 | 0.9573 | 0.9471 | 234 |
-| Neutrophil | 0.9962 | 0.9868 | 0.9915 | 2,660 |
+- **Medical Enhanced Filter (MEF):** A deterministic, 5-step image preprocessing pipeline that normalizes cross-device brightness, exposure, and color variability at the pixel level _before_ feature extraction.
+- **WBCAttention & MedSwish:** A sequential, parameter-efficient CBAM-style attention block (132K params) combined with a custom activation function utilizing learnable parameters ($\alpha, \beta$) to suppress the "Dying ReLU" effect on fine morphological chromatin details.
+- **Dynamic Training-Time XAI Guardrail:** Features `XAIFocusMonitor`, a custom Keras callback that actively calculates Grad-CAM foreground focus ratios during training, automatically stopping execution if the model attempts to exploit spurious background correlations (shortcut learning).
+- **Closed-Loop Remediation Interface:** Implements an agentic inference head powered by an autonomous multi-modal LLM (GPT-4o with a localized Gemini 2.5 Flash fallback) that interprets Grad-CAM heatmaps post-hoc, validating model focus against hematological criteria and dynamically triggering stain normalization if background focus is detected.
 
 ---
 
-## Architecture
+## 📊 Benchmarks & Performance
 
-**Backbone:** DenseNet121 (7.70 M params, frozen during Phase 1)
+### 1. Robustness Under Domain Shift (Raabin-WBC Dataset)
 
-**Novel components:**
-- `WBCAttentionBlock` — CBAM-style channel + spatial attention adapted for leukocyte morphology (132,259 params)
-- `MedSwish` — learnable activation with parameters α, β; suppresses Dying ReLU on fine morphological details (4 params)
-- `WBCFocalLoss` — focal loss with per-class weights to handle class imbalance (Basophil: rare; Neutrophil: dominant)
-- Auxiliary binary head (`Neutrophil vs Lymphocyte`) trained jointly with the main 5-class head
+Evaluated on Giemsa-stained peripheral blood smear images across hardware splits (Professional Laboratory Camera vs. Consumer Smartphone).
 
-**Total trainable params: 7.83 M** (~6% of VGG16's 138 M)
+| Evaluation Set | Target Distribution       | n     | Base Accuracy | Proposed Pipeline Accuracy | Weighted F1 |
+| :------------- | :------------------------ | :---- | :-----------: | :------------------------: | :---------: |
+| **TestA**      | In-Distribution (IND)     | 4,339 |    97.46%     |         **98.53%**         | **0.9854**  |
+| **TestB**      | Out-of-Distribution (OOD) | 2,119 |    56.96%     |         **89.05%**         | **0.9111**  |
+| **Combined**   | Joint Evaluation          | 6,458 |    84.17%     |         **95.42%**         | **0.9554**  |
 
-**Preprocessing — Medical Enhanced Filter (MEF, 5 steps):**
-1. Percentile-based colour normalisation (2nd–98th percentile per channel)
-2. Dual-scale CLAHE in LAB space (tile 4×4 for nuclei + 8×8 for cytoplasm, fused via Canny edge weights)
-3. Edge-preserving bilateral filter (d=9, σ_c=65, σ_s=65)
-4. Morphological nucleus enhancement (inner k3×3 + outer k7×7 gradient blend)
-5. Selective LoG sharpening (edges only; flat regions untouched)
+_Note: TestB captures severe hardware-induced domain shift (contains Lymphocyte and Neutrophil classes collected from unseen acquisition devices)._
 
-**Inference-time domain adaptation (no retraining):**
+### 2. Class-Level Granularity (TestA IND)
 
-| Step | TestB Δ |
-|------|---------|
-| No adaptation (baseline) | 56.96% |
-| + Binary routing (main_out) | +16.94 pp → 73.90% |
-| + Reinhard colour normalisation | +12.56 pp → 86.46% |
-| + Light TTA (flip + rotation + brightness) | +2.59 pp → **89.05%** |
+Extreme class imbalances (e.g., Basophil rarity) are managed natively via class-weighted **WBCFocalLoss**:
 
-**Backbone comparison (validation set, same training protocol):**
+| Leukocyte Subtype | Precision | Recall | F1-Score | Support |
+| :---------------- | :-------: | :----: | :------: | :-----: |
+| **Basophil**      |  1.0000   | 1.0000 |  1.0000  |   89    |
+| **Eosinophil**    |  0.9265   | 0.9783 |  0.9517  |   322   |
+| **Lymphocyte**    |  0.9865   | 0.9884 |  0.9874  |  1,034  |
+| **Monocyte**      |  0.9372   | 0.9573 |  0.9471  |   234   |
+| **Neutrophil**    |  0.9962   | 0.9868 |  0.9915  |  2,660  |
 
-| Model | Params (M) | Val Acc (%) | Macro F1 | Inf (ms) |
-|-------|-----------|-------------|----------|----------|
-| VGG16 | 15.11 | 98.56 | 0.9724 | 18.1 |
-| ResNet50V2 | 24.75 | 98.17 | 0.9704 | 103.9 |
-| MobileNetV2 | 3.05 | 97.90 | 0.9577 | 96.0 |
-| EfficientNetB0 | 4.84 | 97.05 | 0.9418 | 185.4 |
-| DenseNet121 (vanilla) | 7.70 | **98.89** | **0.9803** | 232.2 |
-| **DenseNet121 + WBCAttention + MedSwish** | **7.83** | 98.53 | 0.9853 | **14.2** |
+### 3. Cross-Backbone Efficiency & Latency
 
----
+All models were trained under identical configurations to benchmark the footprint vs. performance trade-offs.
 
-## Agentic XAI
-
-The system runs a two-layer shortcut learning guard:
-
-**Training layer — XAIFocusMonitor callback:**
-- Computes Grad-CAM foreground focus ratio (ρ) every N epochs on the validation set
-- Stops training early if ρ falls below threshold (default 0.55) for `--xai-patience` consecutive checks
-- Detects background shortcut learning autonomously, without human inspection
-
-**Inference layer — LLM agent:**
-- Primary: `openai/gpt-4o` via GitHub Models
-- Fallback: `gemini-2.5-flash` via Google GenAI SDK
-- Rule-based fallback if both APIs are unavailable
-- Overlay of Grad-CAM heatmap + cell-type-specific morphological context prompt → autonomous clinical explanation report
+| Core Architecture Backbone                           | Total Parameters | Validation Accuracy |  Macro F1  | Inference Latency |
+| :--------------------------------------------------- | :--------------: | :-----------------: | :--------: | :---------------: |
+| VGG16                                                |     15.11 M      |       98.56%        |   0.9724   |      18.1 ms      |
+| ResNet50V2                                           |     24.75 M      |       98.17%        |   0.9704   |     103.9 ms      |
+| MobileNetV2                                          |      3.05 M      |       97.90%        |   0.9577   |      96.0 ms      |
+| EfficientNetB0                                       |      4.84 M      |       97.05%        |   0.9418   |     185.4 ms      |
+| DenseNet121 (Vanilla)                                |      7.70 M      |     **98.89%**      |   0.9803   |     232.2 ms      |
+| **Proposed (DenseNet121 + WBCAttention + MedSwish)** |    **7.83 M**    |       98.53%        | **0.9853** |    **14.2 ms**    |
 
 ---
 
-## Repository Structure
+## 🛠️ Deep Dive: Preprocessing & Adaptation
 
-```
+### The 5-Step Medical Enhanced Filter (MEF) Pipeline
+
+1. **Percentile Clipping:** Standardizes luminance by stretching the 2nd–98th percentile per channel to suppress microscope exposure variations.
+2. **Dual-Scale LAB CLAHE:** Applies Local Contrast Enhancement exclusively to the L-channel using fused tile configurations ($4\times4$ for nuclear chromatin, $8\times8$ for cytoplasmic boundaries) via Canny edge-weighted masks to block hue shifts.
+3. **Bilateral Filtering:** Cleans microscopy shot noise ($d=9, \sigma_c=65, \sigma_s=65$) while preserving membrane boundaries.
+4. **Morphological Nucleus Highlighting:** Computes blended inner ($k_{3\times3}$) and outer ($k_{7\times7}$) elliptical gradients to explicitly amplify nuclear lobation structures.
+5. **Selective LoG Sharpening:** Applies localized Laplacian-of-Gaussian sharpening exclusively to edge boundaries, leaving flat backgrounds intact.
+
+### Preprocessing Ablation Insights
+
+The data demonstrates that aggressive structural tampering without calibration degrades cytoplasm-dependent subtypes:
+
+| Preprocessing Variant Configuration                  | TestA (IND) | TestB (OOD) |  Combined  |
+| :--------------------------------------------------- | :---------: | :---------: | :--------: |
+| **v1 — MEF Original (Proposed Configuration)**       | **98.41%**  |   85.65%    |   94.22%   |
+| v2 — Adaptive CLAHE TileGrid ($8\times8$ Only)       |   97.99%    | **87.92%**  | **94.69%** |
+| v3 — v2 + Top-Hat / Bottom-Hat Morphology            |   95.18%    |   77.58%    |   89.41%   |
+| v4 — v3 + Macenko Stain Normalization (Uncalibrated) |   57.78%    |   42.28%    |   52.69%   |
+
+---
+
+## 📂 Project Structure
+
 wbc-final/
-├── app.py                        # Flask REST API + LLM agent
-├── train_main_model.py           # Main model training (Phase 1 + Phase 2 + XAI monitoring)
-├── train_baseline_comparison.py  # 5-backbone comparative training
-├── eval_final.py                 # Evaluation with TTA + binary routing + Reinhard
-├── eval_baseline.py              # Evaluation for baseline backbone results
+├── app.py # Production Flask API + Multi-Modal Agent Orchestration
+├── train_main_model.py # Two-Phase Curriculum Training + Online XAI Monitoring
+├── train_baseline_comparison.py # Comparative Benchmarking Engine for Cross-Backbones
+├── eval_final.py # Evaluation Wrapper (TTA + Binary Routing + Reinhard)
+├── eval_baseline.py # Baseline Backbone Isolation Validation Engine
+├── preprint/ # Academic Publication Artifacts
+│ ├── wbc_preprint.pdf # Compiled arXiv preprint (Full Paper)
+│ ├── main.tex # LaTeX source code for the manuscript
+│ └── references.bib # BibTeX citation library
 ├── src/
-│   ├── custom_layers.py          # WBCAttentionBlock, MedSwish
-│   ├── custom_losses.py          # WBCFocalLoss
-│   └── preprocessing.py         # MEF + Reinhard normalisation (v1–v4 variants)
+│ ├── custom_layers.py # Tensor Definitions for WBCAttentionBlock & MedSwish
+│ ├── custom_losses.py # Class-Weighted WBCFocalLoss Matrix Definitions
+│ └── preprocessing.py # Operational Implementations of MEF (v1–v4)
 ├── data/
-│   ├── models/                   # Place .keras model here
-│   └── raabin-wbc-data/          # Dataset (Train / TestA / TestB)
-├── outputs/
-│   ├── final_model_results/      # Classification reports, confusion matrices
-│   └── baseline_results/         # Backbone comparison results
-└── templates/index.html          # Web UI
-```
+│ ├── models/ # Local Storage Bin for Production Weights
+│ └── raabin-wbc-data/ # Structural Directory for Train/TestA/TestB Partitions
+└── outputs/ # Runtime Target Directory for Classification Matrices & Reports
 
----
+## 🚀 Quick Start & Deployment
 
-## Quick Start
+### Installation
 
-**Requirements:** Python 3.9+, TensorFlow 2.18, CUDA-capable GPU recommended.
+Clone the repository and install Python dependencies:
 
 ```bash
 git clone https://github.com/frissonitte/wbc-analyzer-final.git
@@ -126,135 +127,111 @@ cd wbc-analyzer-final
 pip install -r requirements.txt
 ```
 
-[**Download the model**](https://drive.google.com/file/d/1pV9vjLYF8KCilsxtkEmOaKwd25Dw57gZ/view?usp=sharing) and place it at:
+### Fetch Production Model Weights
+
+Download the production model file `wbc_final_model_densenet.keras` and place it under:
 
 ```
 data/models/wbc_final_model_densenet.keras
 ```
 
-Create `.env` with your API keys:
+(The repository includes a `data/models/` folder where production weights are expected.)
 
-```env
+### Environment Configuration
+
+Create a `.env` file in the project root to store API tokens used by the multi-modal agent layers. Example:
+
+```
 GITHUB_TOKEN=your_github_models_token
 GEMINI_API_KEY=your_gemini_api_key
 ```
 
-Run the web app:
+Keep this file out of version control (add to `.gitignore`) for security.
+
+### Run the Production Server
+
+Start the Flask production engine:
 
 ```bash
 python app.py
 ```
 
-Open `http://localhost:5000`, drag-and-drop a WBC image, and get a classification + Grad-CAM + LLM report.
+The server will start on http://localhost:5000 by default. You can POST microscopy images to the `/predict` endpoint to receive class predictions, Grad-CAM overlays and LLM-based analytical reports.
 
----
+> Note for Windows developers: for native GPU acceleration run scripts in WSL2 with CUDA Toolkit configured.
 
-## Reproduce Best Results
+### Reproduce Evaluation & Training
 
-Evaluate the trained model with the full inference-time adaptation pipeline (Reinhard + binary routing + light TTA):
+Run the final evaluation (inference-time adaptation stack: Reinhard color normalization + binary routing + light TTA):
 
 ```bash
 python eval_final.py \
-    --model-path data/models/wbc_final_model_densenet.keras \
-    --data-root data/raabin-wbc-data \
-    --output-dir outputs/final_model_results \
-    --testb-binary-mode main \
-    --tta light \
-    --color-normalization reinhard \
-    --preprocessing v1
+  --model-path data/models/wbc_final_model_densenet.keras \
+  --data-root data/raabin-wbc-data \
+  --output-dir outputs/final_model_results \
+  --testb-binary-mode main \
+  --tta light \
+  --color-normalization reinhard \
+  --preprocessing v1
 ```
 
-Outputs saved to `--output-dir`: `classification_report.txt`, `confusion_matrix.png`, `predictions.csv` for TestA / TestB / combined.
-
----
-
-## Train from Scratch
-
-> **GPU note (Windows users):** TensorFlow does not support CUDA natively on Windows via pip. For GPU-accelerated training, use **WSL2** with a CUDA-capable NVIDIA GPU. Install the [CUDA toolkit inside WSL2](https://developer.nvidia.com/cuda-downloads), then run training scripts from within the WSL2 environment. The `requirements.txt` in this repo is for the inference app (Windows); for WSL2 training, also install `nvidia-cublas-cu12`, `nvidia-cudnn-cu12`, and the other `nvidia-*` CUDA packages.
-
-**Main model** (DenseNet121 + WBCAttention + MedSwish + XAI monitoring):
+Train the two-phase curriculum from scratch:
 
 ```bash
 python train_main_model.py \
-    --data-root data/raabin-wbc-data \
-    --phase1-epochs 15 \
-    --phase2-epochs 15 \
-    --main-loss cce \
-    --label-smoothing 0.1 \
-    --crop-prob 0.2 \
-    --bg-randomization-prob 0.15 \
-    --stain-jitter-prob 0.3 \
-    --aux-loss-weight 1.0 \
-    --xai-focus-threshold 0.55 \
-    --xai-every-n-epochs 2 \
-    --model-path data/models/wbc_final_model_densenet.keras
+  --data-root data/raabin-wbc-data \
+  --phase1-epochs 15 \
+  --phase2-epochs 15 \
+  --main-loss cce \
+  --label-smoothing 0.1 \
+  --crop-prob 0.2 \
+  --bg-randomization-prob 0.15 \
+  --stain-jitter-prob 0.3 \
+  --aux-loss-weight 1.0 \
+  --xai-focus-threshold 0.55 \
+  --xai-every-n-epochs 2 \
+  --model-path data/models/wbc_final_model_densenet.keras
 ```
 
-**Backbone comparison** (trains all 5 architectures under identical conditions):
+### API Reference
 
-```bash
-python train_baseline_comparison.py \
-    --data-root data/raabin-wbc-data \
-    --results-dir outputs/baseline_results
-```
+Request (multipart/form-data):
 
-Add `--fast` for a reduced-epoch dry run, `--models VGG16 DenseNet121_vanilla` to train a subset.
+POST /predict
 
----
+Form field:
 
-## Dataset
+- `file` — binary stream of the microscopy image (JPG, PNG, BMP, TIFF, WebP accepted)
 
-[Raabin-WBC](https://raabin.ir/) — large open-access dataset by Tehran University of Medical Sciences.  
-5 classes: Basophil, Eosinophil, Lymphocyte, Monocyte, Neutrophil.  
-Giemsa-stained peripheral blood smear images captured from both smartphone cameras (Samsung S5) and professional microscope cameras — the two-device setup creates the cross-domain generalisation challenge addressed by this project.
+Successful JSON response (200 OK) example:
 
-- Train: ~12,000 images
-- TestA: 4,339 images (5 classes, same device distribution)
-- TestB: 2,119 images (2 classes: Lymphocyte + Neutrophil, different device)
-
----
-
-## Preprocessing Ablation
-
-Same trained model, four preprocessing variants:
-
-| Variant | TestA | TestB | Combined |
-|---------|-------|-------|----------|
-| v1 — MEF original (clip + CLAHE + bilateral + sharp) | **98.41%** | 85.65% | 94.22% |
-| v2 — Adaptive CLAHE tileGrid (8×8) | 97.99% | **87.92%** | **94.69%** |
-| v3 — v2 + top-hat / bottom-hat | 95.18% | 77.58% | 89.41% |
-| v4 — v3 + Macenko stain normalisation (uncalibrated) | 57.78% | 42.28% | 52.69% |
-
-v4 collapse is caused by applying Macenko without a dataset-specific reference matrix. v1 is used in final evaluation for the best TestA/Combined balance.
-
----
-
-## API Reference
-
-`POST /predict`
-
-| Field | Type | Description |
-|-------|------|-------------|
-| `file` | multipart/form-data | WBC image (JPG, PNG, BMP, TIFF, WebP) |
-
-**Response (200):**
 ```json
 {
-  "class": "Neutrophil",
-  "confidence": 0.977,
-  "all_probabilities": {...},
-  "gradcam_image": "<base64>",
-  "llm_report": "Grad-CAM activation focused on nuclear lobe structure..."
+    "class": "Neutrophil",
+    "confidence": 0.977,
+    "all_probabilities": {
+        "Basophil": 0.001,
+        "Eosinophil": 0.002,
+        "Lymphocyte": 0.012,
+        "Monocyte": 0.008,
+        "Neutrophil": 0.977
+    },
+    "gradcam_image": "data:image/png;base64,iVBORw0KGgo...",
+    "llm_report": "Grad-CAM confirmation report: Model focus heavily localized on primary nuclear lobation patterns and fine violet cytoplasmic granulation. Zero background shortcuts detected."
 }
 ```
 
-**Error codes:** `400` malformed image · `415` unsupported format · `500` model error
+### Citation
 
----
+If you use this work, cite:
 
-## Author
-
-Emirhan Yıldırım  
-[emirhan.yildirim2@ogr.sakarya.edu.tr](mailto:emirhan.yildirim2@ogr.sakarya.edu.tr)  
-Sakarya University — Information Systems Engineering  
-ISE 402 Graduation Project · 2025–2026 Spring
+```bibtex
+@article{yildirim2026wbc,
+  title={Achieving Robust Out-of-Distribution Generalization in Peripheral Blood Smears via Custom Attention Mechanisms, Medical Enhanced Filtering, and Inference-Time Domain Adaptation},
+  author={Yildirim, Emirhan},
+  publisher={ResearchGate},
+  doi={10.13140/RG.2.2.34201.79208},
+  url={https://doi.org/10.13140/RG.2.2.34201.79208},
+  year={2026}
+}
+```
