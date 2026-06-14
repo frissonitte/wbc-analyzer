@@ -461,6 +461,15 @@
                             </button>
                             <button
                                 class="btn-action btn-reset"
+                                id="tryExampleBtn"
+                                onclick="loadExampleImage()"
+                                style="margin-top: 10px; border-style: dashed"
+                                data-i18n="tryExample"
+                            >
+                                Try with Example Image
+                            </button>
+                            <button
+                                class="btn-action btn-reset"
                                 id="resetBtn"
                                 onclick="resetUI()"
                                 style="display: none"
@@ -966,6 +975,8 @@
             // ===== TRANSLATION DICTIONARY =====
             const translations = {
                 en: {
+                    tryExample: 'Try with Example Image',
+                    tryExampleLoading: 'Loading...',
                     pageTitle: 'WBC Analyzer: AI-Powered Pathology Assistant',
                     headerTitle: 'WBC Analyzer',
                     headerSub:
@@ -1010,6 +1021,8 @@
                     aiModelBadge: 'AI Model',
                 },
                 tr: {
+                    tryExample: 'Örnek Görüntü ile Dene',
+                    tryExampleLoading: 'Yükleniyor...',
                     pageTitle:
                         'WBC Analizörü: Yapay Zeka Destekli Patoloji Asistanı',
                     headerTitle: 'WBC Analizörü',
@@ -1184,6 +1197,8 @@
                 document.getElementById('analyzeBtn').disabled = true;
                 document.getElementById('analyzeBtn').style.display = 'block';
                 document.getElementById('resetBtn').style.display = 'none';
+                document.getElementById('tryExampleBtn').style.display =
+                    'block';
 
                 clearResultsUI();
             }
@@ -1224,6 +1239,7 @@
                 document.getElementById('resultContent').style.display = 'none';
                 document.getElementById('errorState').style.display = 'none';
                 document.getElementById('analyzeBtn').disabled = true;
+                document.getElementById('tryExampleBtn').style.display = 'none';
 
                 const formData = new FormData();
                 formData.append('file', fileInput.files[0]);
@@ -1379,6 +1395,41 @@
                         },
                     },
                 });
+            }
+
+            // ===== EXAMPLE IMAGE =====
+            const EXAMPLE_IMAGES = [
+                'samples/eosinophil.jpg',
+                'samples/lymphocyte.jpg',
+                'samples/monocyte.jpg',
+                'samples/neutrophil.jpg',
+                'samples/basophil.jpg',
+            ];
+
+            async function loadExampleImage() {
+                const btn = document.getElementById('tryExampleBtn');
+                btn.disabled = true;
+                btn.textContent = translations[currentLang].tryExampleLoading;
+
+                const path =
+                    EXAMPLE_IMAGES[
+                        Math.floor(Math.random() * EXAMPLE_IMAGES.length)
+                    ];
+                try {
+                    const res = await fetch(path);
+                    if (!res.ok) throw new Error('not found');
+                    const blob = await res.blob();
+                    const filename = path.split('/').pop();
+                    const file = new File([blob], filename, {
+                        type: blob.type || 'image/jpeg',
+                    });
+                    handleFile(file);
+                } catch {
+                    // silently ignore — user can try again or upload manually
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = translations[currentLang].tryExample;
+                }
             }
 
             function showError(msg) {
