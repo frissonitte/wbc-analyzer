@@ -33,7 +33,7 @@ try:
 except:
     pass
 
-app = Flask(__name__)
+app = Flask(__name__, template_folder="docs")
 CORS(app)
 
 

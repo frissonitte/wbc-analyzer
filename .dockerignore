@@ -1,0 +1,12 @@
+venv/
+data/raabin-wbc-data/
+outputs/
+*.log
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+.git/
+.gitignore
+.env
+.claude/
