@@ -31,7 +31,6 @@ COPY --from=builder /install/deps /usr/local
 COPY src/ src/
 COPY docs/ docs/
 COPY app.py .
-COPY data/models/ data/models/
 
 ENV FLASK_HOST=0.0.0.0
 ENV FLASK_PORT=5000
