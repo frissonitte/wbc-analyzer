@@ -667,6 +667,11 @@ def predict():
         app.logger.error(f"Error: {e}", exc_info=True)
         return jsonify({"error": "A server error occurred during analysis."}), 500
 
+@app.route("/health")
+def health():
+    return {"status": "ok", "model_loaded": model is not None}    
+
+
 
 if __name__ == "__main__":
 
