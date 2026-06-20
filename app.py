@@ -4,6 +4,8 @@ import io
 import logging
 import logging.handlers
 import socket
+import time
+from collections import deque
 import numpy as np
 import cv2
 import tensorflow as tf
@@ -35,6 +37,29 @@ except:
 
 app = Flask(__name__, template_folder="docs")
 CORS(app)
+
+_request_count = 0
+_error_count = 0
+_latencies: deque = deque(maxlen=1000)
+_start_time = time.time()
+
+
+@app.before_request
+def _before_request():
+    from flask import g
+    g.start_time = time.perf_counter()
+
+
+@app.after_request
+def _after_request(response):
+    from flask import g
+    global _request_count, _error_count
+    _request_count += 1
+    if response.status_code >= 400:
+        _error_count += 1
+    if hasattr(g, "start_time"):
+        _latencies.append((time.perf_counter() - g.start_time) * 1000)
+    return response
 
 
 def get_main_output_tensor(model):
@@ -667,9 +692,18 @@ def predict():
         app.logger.error(f"Error: {e}", exc_info=True)
         return jsonify({"error": "A server error occurred during analysis."}), 500
 
+
 @app.route("/health")
 def health():
-    return {"status": "ok", "model_loaded": model is not None}    
+    avg_latency = sum(_latencies) / len(_latencies) if _latencies else None
+    return jsonify({
+        "status": "ok",
+        "model_loaded": model is not None,
+        "uptime_seconds": round(time.time() - _start_time),
+        "request_count": _request_count,
+        "error_count": _error_count,
+        "avg_latency_ms": round(avg_latency, 2) if avg_latency else None,
+    })    
 
 
 
