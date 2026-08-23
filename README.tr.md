@@ -43,8 +43,8 @@ Detaylı sınıf bazlı metrikler, omurga karşılaştırmaları ve ablation ana
 1. Depoyu klonlayın ve bağımlılıkları yükleyin:
 
 ```bash
-git clone https://github.com/frissonitte/wbc-analyzer-final.git
-cd wbc-analyzer-final
+git clone https://github.com/yildirimemirhan/wbc-analyzer.git
+cd wbc-analyzer
 pip install -r requirements.txt
 ```
 

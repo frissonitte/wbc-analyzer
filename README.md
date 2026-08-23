@@ -122,8 +122,8 @@ wbc-final/
 Clone the repository and install Python dependencies:
 
 ```bash
-git clone https://github.com/frissonitte/wbc-analyzer-final.git
-cd wbc-analyzer-final
+git clone https://github.com/yildirimemirhan/wbc-analyzer.git
+cd wbc-analyzer
 pip install -r requirements.txt
 ```
 
